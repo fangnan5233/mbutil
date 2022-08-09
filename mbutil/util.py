@@ -287,14 +287,16 @@ def mbtiles_metadata_to_disk(mbtiles_file, **kwargs):
 
 def mbtiles_to_disk(mbtiles_file, directory_path, **kwargs):
     silent = kwargs.get('silent')
+    zmin = kwargs.get('zmin')
+    zmin = kwargs.get('zmax')
     if not silent:
         logger.debug("Exporting MBTiles to disk")
-        logger.debug("%s --> %s" % (mbtiles_file, directory_path))
+        logger.debug("%s --> %s , zoom level: %s-%s" % (mbtiles_file, directory_path, zmin, zmax))
     con = mbtiles_connect(mbtiles_file, silent)
     os.mkdir("%s" % directory_path)
     metadata = dict(con.execute('select name, value from metadata;').fetchall())
     json.dump(metadata, open(os.path.join(directory_path, 'metadata.json'), 'w'), indent=4)
-    count = con.execute('select count(zoom_level) from tiles;').fetchone()[0]
+    count = con.execute("""select count(zoom_level) from tiles where zoom_level >= ? and zoom_level <= ?;""", zmin, zmax).fetchone()[0]
     done = 0
     base_path = directory_path
     if not os.path.isdir(base_path):
@@ -307,7 +309,7 @@ def mbtiles_to_disk(mbtiles_file, directory_path, **kwargs):
         formatter_json = {"formatter":formatter}
         open(layer_json, 'w').write(json.dumps(formatter_json))
 
-    tiles = con.execute('select zoom_level, tile_column, tile_row, tile_data from tiles;')
+    tiles = con.execute("""select zoom_level, tile_column, tile_row, tile_data from tiles where zoom_level >= ? and zoom_level <= ?;""", zmin, zmax)
     t = tiles.fetchone()
     while t:
         z = t[0]
@@ -346,8 +348,8 @@ def mbtiles_to_disk(mbtiles_file, directory_path, **kwargs):
     callback = kwargs.get('callback')
     done = 0
     try:
-        count = con.execute('select count(zoom_level) from grids;').fetchone()[0]
-        grids = con.execute('select zoom_level, tile_column, tile_row, grid from grids;')
+        count = con.execute("""select count(zoom_level) from grids where zoom_level >= ? and zoom_level <= ?;""", zmin, zmax).fetchone()[0]
+        grids = con.execute("""select zoom_level, tile_column, tile_row, grid from grids where zoom_level >= ? and zoom_level <= ?;""", zmin, zmax)
         g = grids.fetchone()
     except sqlite3.OperationalError:
         g = None # no grids table

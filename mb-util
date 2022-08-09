@@ -58,6 +58,14 @@ if __name__ == '__main__':
         action="store_true",
         default=False)
 
+    parser.add_option('--zmin', dest='zmin',
+        help='''min zoom level''',
+        default=0)
+
+    parser.add_option('--zmax', dest='zmax',
+        help='''max zoom level''',
+        default=14)
+
     (options, args) = parser.parse_args()
 
     # Transfer operations
